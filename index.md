@@ -4,4 +4,4 @@ I'll write some articles here. The Github page service provides me with a good c
 
 Now let's check out the articles. 
 
-[Link] (https://avbest.github.io/) My page
+[Link](https://avbest.github.io/) My page
