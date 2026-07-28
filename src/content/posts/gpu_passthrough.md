@@ -467,7 +467,7 @@ vdd安装也是十分傻瓜式，github上下载下来，运行主程序，然�
 别忘了在主机上装好looking glass的client端哦~arch的源已经包含啦.
 
 ```fish
-sudo pacman -S sudo pacman -S looking-glass-rc
+sudo pacman -S looking-glass-rc
 ```
 
 之后，最关键的一步，在windows设置里面，把自带的那个虚拟机显示设备（wired display）直接禁用掉.
