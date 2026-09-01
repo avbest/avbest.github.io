@@ -492,3 +492,61 @@ sudo modprobe nvidia
 sudo modprobe nvidia_drm
 ```
 （PS：需要注意，这种手动恢复的方式似乎不能被wine响应，因此最好还是改启动参数再重启比较好哦！）
+
+## 后记
+
+当然，用这套方案基本上都是打游戏的吧，不过只按照这个教程里面的配是不太能玩好的，还有很多事情要做.
+
+首先是cpu的问题，默认情况下virt会给配1核心搭很多插槽(slot)，这是不行的，专业版和家庭版都不认这种方案，结果就是设备管理器里面能看到是好几个核，但实际上win只能用一个核.
+
+在网上其实能找到解决方案，来自https://github.com/bryansteiner/gpu-passthrough-tutorial ，首先确保你装了hwloc，然后打开lstopo，能看到类似于这个的图
+
+![](https://i.imgs.ovh/2026/09/01/66681f74f3c8054bc3bed6de176c8c79.png)
+
+能看到0-5这6个核实际上每个都提供2个线程，所以说这个u是16核心22线程，多的这6个线程就是从这来的，但系统和qemu当然不知道这一点，在它看来这就是22个核心. 这6个核的性能肯定是要比其他核好的，所以我们直接把这6个核绑到虚拟机里.
+
+以下是配置
+
+```xml
+<vcpu placement='static'>12</vcpu>
+  <cputune>
+    <vcpupin vcpu='0' cpuset='0'/>
+    <vcpupin vcpu='1' cpuset='5'/>
+    <vcpupin vcpu='2' cpuset='1'/>
+    <vcpupin vcpu='3' cpuset='2'/>
+    <vcpupin vcpu='4' cpuset='3'/>
+    <vcpupin vcpu='5' cpuset='4'/>
+    <vcpupin vcpu='6' cpuset='6'/>
+    <vcpupin vcpu='7' cpuset='7'/>
+    <vcpupin vcpu='8' cpuset='8'/>
+    <vcpupin vcpu='9' cpuset='9'/>
+    <vcpupin vcpu='10' cpuset='10'/>
+    <vcpupin vcpu='11' cpuset='11'/>
+    <emulatorpin cpuset='12-15'/>
+  </cputune>
+</vcpu>
+```
+
+这样虚拟机就不会再用其他核了，这就是绑核.
+但是还要设定一下cpu，因为默认情况下是多插槽方案，win一般不认，所以要改一下.
+
+```xml
+<cpu mode='host-passthrough' check='none' migratable='off'>
+    <topology sockets='1' dies='1' clusters='1' cores='6' threads='2'/>
+    <cache mode='passthrough'/>
+    <maxphysaddr mode='passthrough' limit='40'/>
+    <feature policy='require' name='topoext'/>
+    <feature policy='disable' name='hypervisor'/>
+</cpu>
+```
+
+很好理解，6个核，2个线程，6*2=12，完美符合咱们的情况.
+
+还有，共享文件的问题. 因为使用了looking glass，所以spice提供的文件拖拽其实是不生效的，要共享文件可以使用qemu内置的samba，但是我不知道怎么用virt配这个，所以只能选择传统方案，在宿主机上开个http server，虚拟机直接下载就行了.
+
+前提是你要放行虚拟机发向宿主机的网络请求，这一点在设置虚拟机使用宿主机代理的时候也要用. 具体怎么做应该不用我说了吧，如果你用的是kde，设置里面就有调防火墙规则的，直接放行virbr0的相关请求就行.
+
+哦还有手柄的问题，这个有点无解，如果你用的是usb接收器，手柄休眠之后再连接，有一瞬间设备id会变，但是这样qemu就不会再通这个设备进去了. looking glass也不能正常用evdev的方案，不知道为什么. 不过有线不会受影响，因为有线状态下手柄不会休眠，但是需要你额外装xpad的驱动才行.
+
+不过其实也没那么麻烦，只是每次重新连接的时候，都需要在virt里面重配一次usb直通罢了，很快的.
+
