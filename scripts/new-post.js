@@ -1,7 +1,6 @@
 /* This is a script to create a new post markdown file with front-matter */
 
 import fs from "fs"
-import path from "path"
 
 function getDate() {
   const today = new Date()
@@ -29,7 +28,7 @@ if (!fileExtensionRegex.test(fileName)) {
 }
 
 const targetDir = "./src/content/posts/"
-const fullPath = path.join(targetDir, fileName)
+const fullPath = targetDir + fileName
 
 if (fs.existsSync(fullPath)) {
   console.error(`Error: File ${fullPath} already exists `)
@@ -48,6 +47,6 @@ lang: ''
 ---
 `
 
-fs.writeFileSync(path.join(targetDir, fileName), content)
+fs.writeFileSync(targetDir + fileName, content)
 
 console.log(`Post ${fullPath} created`)

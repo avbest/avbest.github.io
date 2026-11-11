@@ -1,5 +1,4 @@
 ---
-import path from 'path'
 interface Props {
   id?: string
   src: string
@@ -22,6 +21,26 @@ const isLocal = !(
 )
 const isPublic = src.startsWith('/')
 
+// Equivalent of node's path.join(...) + path.normalize(...) for '/'-separated
+// relative paths: collapses repeated separators and resolves '.' and '..' segments.
+function normalizePath(path: string): string {
+  const segments = path.split('/')
+  const out: string[] = []
+  for (const seg of segments) {
+    if (seg === '' || seg === '.') continue
+    if (seg === '..') {
+      if (out.length > 0 && out[out.length - 1] !== '..') out.pop()
+      else out.push('..')
+      continue
+    }
+    out.push(seg)
+  }
+  let result = out.join('/')
+  if (path.startsWith('/')) result = '/' + result
+  if (path.endsWith('/')) result += '/'
+  return result
+}
+
 // TODO temporary workaround for images dynamic import
 // https://github.com/withastro/astro/issues/3373
 let img
@@ -29,9 +48,7 @@ if (isLocal) {
   const files = import.meta.glob<ImageMetadata>('../../**', {
     import: 'default',
   })
-  let normalizedPath = path
-    .normalize(path.join('../../', basePath, src))
-    .replace(/\\/g, '/')
+  let normalizedPath = normalizePath(['../../', basePath, src].join(''))
   const file = files[normalizedPath]
   if (!file) {
     console.error(`\n[ERROR] Image file not found: ${normalizedPath.replace('../../', 'src/')}`)
